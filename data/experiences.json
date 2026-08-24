@@ -1,0 +1,29 @@
+[
+    {
+        "name": "Calm Spins",
+        "volatility": 0,
+        "pace": 1,
+        "mechanics": 1,
+        "complexity": 1,
+        "audiovisual": 1,
+        "reward_structure": 1
+    },
+    {
+        "name": "Adventure Reels",
+        "volatility": 1,
+        "pace": 2,
+        "mechanics": 2,
+        "complexity": 2,
+        "audiovisual": 2,
+        "reward_structure": 2
+    },
+    {
+        "name": "High Roller Storm",
+        "volatility": 2,
+        "pace": 3,
+        "mechanics": 3,
+        "complexity": 3,
+        "audiovisual": 3,
+        "reward_structure": 3
+    }
+]
