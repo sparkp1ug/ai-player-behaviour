@@ -284,6 +284,23 @@
       cursor: default;
     }
 
+    .card-time button {
+      margin-left: auto;
+      padding: 0;
+      border: none;
+      background: none;
+      color: var(--text-faint);
+      font-family: var(--mono);
+      font-size: 10px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .card-time button:hover {
+      color: var(--danger);
+    }
+
     .add-card-row {
       display: flex;
       gap: 6px;
@@ -582,21 +599,16 @@
 
       // Update elapsed time display
       function updateElapsedTime() {
-        if (card.status === 'progress' && card.startTime) {
-          const elapsed = (Date.now() - card.startTime) / 1000;
+        const elapsed = (card.timeActual || 0) * 3600
+          + (card.status === 'progress' && card.startTime ? (Date.now() - card.startTime) / 1000 : 0);
+        if (elapsed > 0) {
           const hours = Math.floor(elapsed / 3600);
           const mins = Math.floor((elapsed % 3600) / 60);
           const secs = Math.floor(elapsed % 60);
           actDisplay.textContent = `${hours}h ${mins}m`;
           actDisplay.title = `Elapsed: ${hours}h ${mins}m ${secs}s`;
-          actDisplay.style.color = 'var(--accent)';
-          setTimeout(updateElapsedTime, 1000);
-        } else if (card.status === 'done' && card.timeActual > 0) {
-          const hours = Math.floor(card.timeActual);
-          const mins = Math.round((card.timeActual % 1) * 60);
-          actDisplay.textContent = `${hours}h ${mins}m`;
-          actDisplay.style.color = 'var(--done)';
-          actDisplay.title = `Total tracked time: ${card.timeActual.toFixed(2)} hours`;
+          actDisplay.style.color = card.status === 'progress' ? 'var(--accent)' : 'var(--text-muted)';
+          if (card.status === 'progress' && card.startTime) setTimeout(updateElapsedTime, 1000);
         } else {
           actDisplay.textContent = '—';
           actDisplay.style.color = 'var(--text-faint)';
@@ -613,6 +625,13 @@
       timeDiv.appendChild(slash);
       timeDiv.appendChild(actDisplay);
       timeDiv.appendChild(actLabel);
+
+      const resetTimeButton = document.createElement('button');
+      resetTimeButton.type = 'button';
+      resetTimeButton.textContent = 'reset';
+      resetTimeButton.title = 'Reset tracked time';
+      resetTimeButton.addEventListener('click', () => resetCardTime(card.id));
+      timeDiv.appendChild(resetTimeButton);
       el.appendChild(timeDiv);
 
       return el;
@@ -642,6 +661,16 @@
 
     function deleteCard(id) {
       state.cards = state.cards.filter(c => c.id !== id);
+      saveState();
+      render();
+    }
+
+    function resetCardTime(id) {
+      const card = state.cards.find(c => c.id === id);
+      if (!card || !confirm(`Reset tracked time for ${card.ticket}?`)) return;
+      card.timeActual = 0;
+      card.startTime = card.status === 'progress' ? Date.now() : null;
+      card.endTime = null;
       saveState();
       render();
     }
@@ -676,26 +705,14 @@
             const prevStatus = card.status;
             card.status = status;
 
-            // Track time transitions
-            if (prevStatus !== 'progress' && status === 'progress') {
-              // Card moved TO progress: start timer
+            // Pause when leaving progress and resume from the accumulated total.
+            if (status === 'progress') {
               card.startTime = Date.now();
-            } else if (prevStatus === 'progress' && status === 'done') {
-              // Card moved FROM progress TO done: stop timer and calculate
-              if (card.startTime) {
-                const elapsedMs = Date.now() - card.startTime;
-                card.timeActual = elapsedMs / (1000 * 60 * 60);
-                card.endTime = Date.now();
-                card.startTime = null;
-              }
-            } else if (prevStatus === 'done' && status === 'progress') {
-              // Card moved back to progress: restart timer
-              card.startTime = Date.now();
-              card.endTime = null;
-            } else if (prevStatus === 'progress' && status !== 'progress' && status !== 'done') {
-              // Card moved FROM progress to somewhere else: clear timer
+            } else if (prevStatus === 'progress' && card.startTime) {
+              const elapsedMs = Date.now() - card.startTime;
+              card.timeActual = (card.timeActual || 0) + elapsedMs / (1000 * 60 * 60);
               card.startTime = null;
-              card.endTime = null;
+              card.endTime = status === 'done' ? Date.now() : null;
             }
 
             saveState();
