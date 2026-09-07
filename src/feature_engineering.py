@@ -44,7 +44,6 @@ FEATURE_COLUMNS = [
     "pref_low_volatility",
     "pref_medium_volatility",
     "pref_high_volatility",
-    "theme_diversity",
 ]
 
 LABEL_COLUMNS = ["player_id", "persona_id"]  # never used as a model input, only for sanity-
@@ -124,6 +123,33 @@ def build_player_features(raw: dict[str, pd.DataFrame]) -> pd.DataFrame:
     out = players.set_index("player_id")[["persona_id"]].join(aggregated).reset_index()
     return out
 
+def preprocess_features(features: pd.DataFrame) -> pd.DataFrame:
+    """
+    Preprocess the features by imputing missing values and scaling.
+
+    Args:
+        features: DataFrame containing the features to preprocess.
+
+    return:
+        A DataFrame with the preprocessed features.
+    """
+
+    X = features[FEATURE_COLUMNS].copy()
+
+    imputer = SimpleImputer(strategy="median")
+    scaler = StandardScaler()
+
+    # Impute missing values
+    imputed_features = imputer.fit_transform(X)
+
+    # Scale features
+    scaled_features = scaler.fit_transform(imputed_features)
+
+    scaled_df = pd.DataFrame(scaled_features, columns=FEATURE_COLUMNS, index=features.index)
+    scaled_df.insert(0, "player_id", features["player_id"].values)
+    scaled_df.insert(1, "persona_id", features["persona_id"].values)
+    return scaled_df, scaler
+
 def run(data_dir: Path, out_dir: Path) -> None:
     """
     Run the feature engineering pipeline.
@@ -135,13 +161,20 @@ def run(data_dir: Path, out_dir: Path) -> None:
     raw = load_and_preprocess_data(data_dir)
     features = build_player_features(raw)
 
+    features["n_sessions"] = features["n_sessions"].fillna(0)
+
+    scaled_features, _scaler = preprocess_features(features)
+
     # Save unscaled features
     features.to_csv(out_dir / "player_features_raw.csv", index=False)
 
+    # Save scaled features
+    scaled_features.to_csv(out_dir / "player_features_scaled.csv", index=False)
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Feature engineering & preprocessing.")
-    parser.add_argument("--data-dir", type=Path, required=True, help="Directory containing the raw CSV files.")
-    parser.add_argument("--out-dir", type=Path, required=True, help="Directory where the output CSV files will be saved.")
+    parser.add_argument("--data-dir", type=Path, default=Path("data/"), help="Directory containing the raw CSV files.")
+    parser.add_argument("--out-dir", type=Path, default=Path("data/"), help="Directory where the output CSV files will be saved.")
     args = parser.parse_args()
 
     run(args.data_dir, args.out_dir)
