@@ -1,0 +1,74 @@
+name: Pages
+
+# Builds the Rust/WASM demo and publishes it to GitHub Pages.
+#
+# One manual step is required once, and the deploy fails without it:
+#   Settings -> Pages -> Source = GitHub Actions
+#
+# The --public-url below must match the repo name. Pages serves this project
+# at /ai-player-behaviour/, and if the bundle is built assuming / the loader
+# requests the .wasm from the wrong path and the page renders as a blank
+# canvas with a 404 in the network tab. That failure is silent and is the
+# single most common way these deploys break.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # rust-toolchain.toml in rust/ pins the channel and pulls in the
+      # wasm32 target, so it is not repeated here.
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Install trunk
+        # Prebuilt binary, not `cargo install trunk`, which builds from source
+        # and costs 3-5 minutes of CI time on every cache miss.
+        run: |
+          curl -fsSL https://github.com/trunk-rs/trunk/releases/download/v${TRUNK_VERSION}/trunk-x86_64-unknown-linux-gnu.tar.gz \
+            | tar -xzf- -C /usr/local/bin
+          trunk --version
+        env:
+          TRUNK_VERSION: "0.21.14"
+
+      - name: Build
+        working-directory: rust
+        run: trunk build --release --public-url /ai-player-behaviour/
+
+      # Pages runs Jekyll over the artefact unless told not to, and Jekyll
+      # drops files and directories beginning with an underscore — which is
+      # exactly how wasm-bindgen names some of its output.
+      - name: Disable Jekyll
+        run: touch rust/dist/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: rust/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

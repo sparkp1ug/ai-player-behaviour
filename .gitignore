@@ -231,3 +231,6 @@ interview-prep-*.md
 # Fitted model binaries: regenerable from src/clustering.py, and pickles are
 # tied to the exact sklearn version that wrote them.
 models/*.pkl
+
+# Rust build artefacts
+rust/target/

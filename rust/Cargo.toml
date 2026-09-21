@@ -1,0 +1,26 @@
+[package]
+name = "player-behaviour-demo"
+version = "0.1.0"
+edition = "2021"
+description = "Browser demo: play the slot machine and watch the recommender adapt"
+license = "MIT"
+
+[dependencies]
+eframe = { version = "0.29", default-features = false, features = ["glow"] }
+egui = "0.29"
+egui_plot = "0.29"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = ["Document", "Window", "Element", "HtmlCanvasElement"] }
+# A Rust panic in wasm looks like a frozen canvas, not an error. This turns it
+# into a console message, which is the difference between a five-minute fix
+# and an afternoon.
+console_error_panic_hook = "0.1"
+
+[profile.release]
+opt-level = "s"      # eframe's wasm bundle is the constraint, not CPU time
+lto = true
+codegen-units = 1
+panic = "abort"

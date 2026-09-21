@@ -1,0 +1,5 @@
+# Pinned so CI and this laptop agree, and so rustup installs the wasm target
+# automatically rather than failing with an error nobody reads.
+[toolchain]
+channel = "1.98"
+targets = ["wasm32-unknown-unknown"]
