@@ -39,11 +39,11 @@ def choose_optimal_k(X, k_range: range, out_dir: Path) -> int:
             best_k = k
 
     # Plot silhouette scores for each k
-    fig, ax = plt.subplots(1 ,2, figsize=(12, 5))
-    ax[0].plot(k_range, silhouette_scores, marker='o')
-    ax[0].set_xlabel('Number of Clusters (k)')
-    ax[0].set_ylabel('Silhouette Score')
-    ax[0].set_title('Optimal k based on Silhouette Score')
+    fig, ax = plt.subplots(figsize=(7, 5))
+    ax.plot(k_range, silhouette_scores, marker='o')
+    ax.set_xlabel('Number of Clusters (k)')
+    ax.set_ylabel('Silhouette Score')
+    ax.set_title('Optimal k based on Silhouette Score')
 
     # Save the plot
     plt.savefig(out_dir / 'silhouette_scores.png')

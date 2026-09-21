@@ -51,9 +51,9 @@ def run(features_raw_path: Path, out_dir: Path, flag_quantile: float) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--features_raw_path", type=Path, default=Path("data/player_features_raw.csv"))
-    parser.add_argument("--out_dir", type=Path, default=Path("data"))
-    parser.add_argument("--flag_quantile", type=float, default=0.90,
+    parser.add_argument("--features-raw-path", type=Path, default=Path("data/player_features_raw.csv"))
+    parser.add_argument("--out-dir", type=Path, default=Path("data"))
+    parser.add_argument("--flag-quantile", type=float, default=0.90,
                          help="Players at/above this quantile of risk_score are flagged.")
     args = parser.parse_args()
 

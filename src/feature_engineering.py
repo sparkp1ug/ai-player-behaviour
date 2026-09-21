@@ -50,12 +50,14 @@ LABEL_COLUMNS = ["player_id", "persona_id"]  # never used as a model input, only
 
 def load_and_preprocess_data(input_dir: Path) -> pd.DataFrame:
     """
-    Load the raw simulator output and turn it into a single row per player.
+    Load the four raw CSVs the simulator writes.
 
     Args:
         input_dir: Path to the directory containing the raw CSV files.
     return:
-        A DataFrame with one row per player, containing the features and labels.
+        A dict of the raw tables, keyed "games", "players", "sessions",
+        "events". Turning these into one row per player is
+        build_player_features' job, not this one's.
     """
     return {
         "games": pd.read_csv(input_dir / "games.csv"),
