@@ -1,0 +1,10 @@
+# Runtime dependencies. Versions are floors, not pins — these are the versions
+# the project is developed and tested against (Python 3.14).
+numpy>=2.0
+pandas>=2.2
+scikit-learn>=1.5
+matplotlib>=3.8
+
+# Dashboard only. The rest of the pipeline and the arena run without these.
+streamlit>=1.40
+pyarrow>=15.0          # pandas parquet engine

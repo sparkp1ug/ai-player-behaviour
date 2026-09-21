@@ -222,3 +222,12 @@ __marimo__/
 
 #Local project data
 data/
+# Personal working files — not portfolio content
+kanban-board.html
+study-schedule-*.md
+interview-prep-*.md
+*.code-workspace
+
+# Fitted model binaries: regenerable from src/clustering.py, and pickles are
+# tied to the exact sklearn version that wrote them.
+models/*.pkl
