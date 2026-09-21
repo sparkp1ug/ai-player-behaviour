@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: pytest
+
+      # The suite builds its own catalogue in-memory, because data/ is
+      # gitignored and never reaches CI. This step proves the scripts a
+      # visitor actually runs work on a clean checkout, which the unit tests
+      # alone do not.
+      - name: Pipeline smoke test
+        run: |
+          python src/generate_synthetic_data.py --seed 42 --players-per-persona 6 \
+            --sessions-per-player 3 --out-dir data
+          python src/feature_engineering.py --data-dir data --out-dir data
+          python src/responsible_play.py
+          python src/clustering.py
+          python src/embedding_model.py --epochs 500
+          python src/recommendation_engine.py --data-dir data --top-n 3
+          python src/slot_machine.py --audit --spins 20000
+          python src/play_loop.py --agents-per-persona 2 --rounds 10 --seeds 7 \
+            --no-events --out-dir data/arena

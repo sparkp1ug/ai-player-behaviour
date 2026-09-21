@@ -63,8 +63,8 @@ _BONUS_BETA_A, _BONUS_BETA_B = 1.0, 12.0
 
 def _raw_shape_draw(volatility: Volatility, rng: np.random.Generator) -> float:
     """Unscaled non-bonus win-multiplier shape, mean == 1.0 by construction.
-    Only the *shape* (variance) differs by tier; _calibrate_payout_scale
-    rescales it per game so the realised mean matches RTP."""
+    Only the *shape* (variance) differs by tier; _payout_scale rescales it
+    per game so the realised mean matches RTP."""
     if volatility is Volatility.LOW:
         return rng.uniform(0.5, 1.5)          # tight — steady small wins
     if volatility is Volatility.MEDIUM:
@@ -72,7 +72,56 @@ def _raw_shape_draw(volatility: Volatility, rng: np.random.Generator) -> float:
     return rng.exponential(scale=1.0)          # heavy right tail
 
 
-def _calibrate_payout_scale(
+def _expected_raw_return(win_prob: float, bonus_freq: float, max_mult: float) -> float:
+    """E[payout / bet] for one spin at unit payout_scale. Exact, not estimated.
+
+    Every branch of _spin is a probability times the mean of a draw:
+
+        E[raw] = bonus_freq * E[Beta(a,b)] * max_mult
+               + (1 - bonus_freq) * win_prob * E[shape]
+
+    and both means are known in closed form. E[Beta(1,12)] = 1/13, and every
+    tier's shape draw has mean exactly 1.0 by construction — U(0.5,1.5),
+    U(0.2,1.8) and Exp(1) all do, which is the whole point of
+    _raw_shape_draw only varying the *variance* between tiers. So volatility
+    does not appear here at all.
+    """
+    beta_mean = _BONUS_BETA_A / (_BONUS_BETA_A + _BONUS_BETA_B)
+    return bonus_freq * beta_mean * max_mult + (1.0 - bonus_freq) * win_prob
+
+
+def _payout_scale(win_prob: float, bonus_freq: float, max_mult: float,
+                  target_rtp: float) -> float:
+    """Solve exactly for the factor that brings E[payout/bet] to target_rtp.
+
+    This replaces a 40,000-sample Monte Carlo calibration that was measurably
+    biased: on the shipped catalogue it missed the target RTP by a mean of
+    1.68pp and by up to 5.57pp, worst on exactly the high-volatility games
+    where the estimator's own standard error is largest (per-spin payout SD
+    runs 6-9 there, so 40k samples gives the calibrator an SE of ~0.03-0.045 —
+    bigger than the whole effect being calibrated).
+
+    The old docstring justified Monte Carlo on the grounds that a closed form
+    "goes negative whenever a game combines a high bonus_frequency with a high
+    max_multiplier". That was true of the relation it stated, which used
+    0.65 * max_multiplier as the bonus term — but the sampler draws
+    Beta(1,12), whose mean is 1/13 = 0.077, not 0.65. With the correct
+    constant that formulation stays positive on all 15 games. And this one is
+    unconditionally positive regardless, because payout_scale multiplies
+    *both* branches, so the solve is target_rtp / E[raw] with E[raw] > 0
+    whenever the game can pay out at all.
+
+    _calibrate_payout_scale_monte_carlo is kept as the test oracle: an
+    independent estimate that must agree with this to within its own
+    sampling error.
+    """
+    raw = _expected_raw_return(win_prob, bonus_freq, max_mult)
+    if raw <= 1e-9:
+        return 1.0
+    return target_rtp / raw
+
+
+def _calibrate_payout_scale_monte_carlo(
     volatility: Volatility,
     win_prob: float,
     bonus_freq: float,
@@ -81,15 +130,13 @@ def _calibrate_payout_scale(
     rng: np.random.Generator,
     n_samples: int = 40000,
 ) -> float:
-    """Monte Carlo self-calibration: simulate n_samples spins at unit scale,
-    measure the realised (unscaled) return per bet, then solve for the
-    single multiplicative factor that brings it to target_rtp.
+    """Simulate n_samples spins at unit scale, measure the realised return per
+    bet, then solve for the factor that brings it to target_rtp.
 
-    This is deliberately empirical rather than solved in closed form —
-    closed-form solutions here go negative whenever a randomly-sampled game
-    happens to combine a high bonus_frequency with a high max_multiplier
-    (the bonus term alone can exceed the RTP target). Monte Carlo
-    calibration is robust to any parameter combination by construction.
+    No longer used to build the catalogue — see _payout_scale for why. Kept
+    because an independent empirical estimate is exactly what you want to
+    check an analytic derivation against, and tests/test_payout_calibration.py
+    does that.
     """
     total = 0.0
     for _ in range(n_samples):
@@ -106,15 +153,19 @@ def _calibrate_payout_scale(
 def generate_games(n: int, rng: np.random.Generator) -> list[SlotGame]:
     """Build the game catalogue with payout math actually tied to RTP.
 
-    Each game's RTP is the target long-run return per dollar bet. We solve
-    for the non-bonus win multiplier's mean so that:
+    Each game's RTP is the target long-run return per dollar bet, and
+    payout_scale is solved exactly so that:
 
-        rtp ≈ bonus_freq * (0.65 * max_multiplier)      [bonus contribution]
-            + win_prob   * mean_multiplier_on_win        [base-game contribution]
+        rtp = payout_scale * [ bonus_freq * (max_multiplier / 13)
+                             + (1 - bonus_freq) * win_prob ]
+
+    (1/13 is E[Beta(1,12)], the bonus multiplier's mean as a fraction of
+    max_multiplier; the non-bonus shape draws all have mean 1.0.)
 
     This makes RTP a real driver of the simulation rather than a decorative
     field, and it's what keeps high-volatility games "mostly losing, with a
-    few outsized wins" rather than just randomly generous.
+    few outsized wins" rather than just randomly generous — the *shape* still
+    differs per tier even though the long-run mean is pinned.
     """
     games = []
     tiers = [Volatility.LOW, Volatility.MEDIUM, Volatility.HIGH]
@@ -136,9 +187,7 @@ def generate_games(n: int, rng: np.random.Generator) -> list[SlotGame]:
         bonus_freq = round(bonus_freq, 4)
         max_mult = round(max_mult, 1)
 
-        payout_scale = _calibrate_payout_scale(
-            volatility, win_prob, bonus_freq, max_mult, rtp, rng
-        )
+        payout_scale = _payout_scale(win_prob, bonus_freq, max_mult, rtp)
 
         games.append(SlotGame(
             game_id=f"game_{i:02d}",
@@ -348,7 +397,9 @@ def run(
     players_df = pd.DataFrame([vars(p) for p in players])
 
     sessions_df = pd.DataFrame([vars(s) for s in all_sessions])
-    sessions_df["end_reason"] = sessions_df["end_reason"].apply(lambda v: v.value if hasattr(v, "value") else v)
+    sessions_df["end_reason"] = sessions_df["end_reason"].apply(
+        lambda v: v.value if hasattr(v, "value") else v
+    )
 
     events_df = pd.DataFrame([vars(e) for e in all_events])
 
