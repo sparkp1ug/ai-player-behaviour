@@ -10,7 +10,7 @@ portfolio demonstration.
 - Synthetic player behaviour dataset generator
 - Behaviour feature engineering and preprocessing
 - Clustering using scikit-learn (K-means, PCA visualisation)
-- Experience embedding model — *specified in `src/embedding_model.py`, not yet implemented*
+- Behavioural embedding model: NumPy autoencoder, backward pass verified by gradient check
 - Cosine-similarity recommendation engine
 - Playable slot machine environment (same RTP-calibrated maths as the dataset)
 - Population of learning AI agents that play it and generate data by interacting
