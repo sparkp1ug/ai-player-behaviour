@@ -16,7 +16,7 @@ portfolio demonstration.
 - Population of learning AI agents that play it and generate data by interacting
 - Adaptive recommender (hybrid LinUCB contextual bandit) that learns online,
   benchmarked against random and static-cosine baselines
-- Interactive dashboard (Streamlit) — *currently broken, see `dashboard/app.py`*
+- Interactive dashboard (Streamlit): player profiles, risk flags, recommendations, arena results
 - Clear architecture and documentation for portfolio presentation
 
 ## Two loops
