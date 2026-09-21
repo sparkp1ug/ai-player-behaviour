@@ -1,4 +1,7 @@
 # ai-player-behaviour
+
+[![CI](https://github.com/sparkp1ug/ai-player-behaviour/actions/workflows/ci.yml/badge.svg)](https://github.com/sparkp1ug/ai-player-behaviour/actions/workflows/ci.yml)
+
 This project models player interaction patterns using synthetic data and applies machine learning techniques to cluster behaviour profiles and recommend suitable game experiences. It demonstrates behavioural analytics, clustering, feature engineering, and similarity-based recommendation systems.
 
 The goal is to showcase a safe, generalised approach to modelling user
@@ -82,6 +85,36 @@ out and for chasing losses. It is not time-on-device or amount wagered.
 Risk-flagged players get high-volatility games downweighted by a hard
 constraint outside the objective, because anything that must hold regardless of
 reward does not belong in a reward a bandit is free to trade against.
+
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+ruff check . && pytest
+```
+
+25 tests, ~40 seconds. They check the things this project actually claims,
+not just that the code runs:
+
+- **`payout_scale` is exact.** The analytic solve is checked against an
+  independent 200k-sample Monte Carlo estimate — two completely different
+  computations that have to agree — and against the target RTP directly.
+- **The machine pays what the catalogue says.** Realised RTP against the
+  analytic expectation, plus tight Bernoulli bands on hit rate and bonus
+  rate, which is what catches a mis-structured branch.
+- **The safety layer.** A regression test for the inverted flagged-player
+  path: every game keeps a real `adjusted_score`, flagged players see fewer
+  high-volatility games, unflagged players are untouched.
+- **The bandit beats its baselines.** Paired by seed. Adaptive vs random is
+  asserted per seed (positive on 20/20 seeds when measured); adaptive vs
+  static only on the mean, because over the same 20 seeds it was negative on
+  one — asserting per seed there would buy a flaky test, not confidence.
+- **The autoencoder's backward pass.** Against central finite differences,
+  which is the only way to know a transposed matrix isn't quietly training
+  anyway.
+
+CI additionally runs every script end to end on a clean checkout, because
+`data/` is gitignored and the unit tests build their own fixtures.
 
 ## Purpose
 This project is intended as a portfolio piece to demonstrate skills in:

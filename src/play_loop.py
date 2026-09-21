@@ -91,7 +91,7 @@ def risk_flags(agents: list[PlayerAgent], round_idx: int) -> dict[str, bool]:
         "max_consecutive_losses_mean": [c["max_consecutive_losses_mean"] for c in contexts],
     })
     scored = responsible_play.score(frame, flag_quantile=RISK_FLAG_QUANTILE)
-    return dict(zip(scored["player_id"], scored["risk_flag"]))
+    return dict(zip(scored["player_id"], scored["risk_flag"], strict=True))
 
 
 def run_policy(
@@ -250,7 +250,7 @@ def plot_learning_curves(results: dict[str, dict], out_path: Path,
          "safety layer — lower is better, not learned"),
     ]
 
-    for ax, (column, title, subtitle) in zip(axes, panels):
+    for ax, (column, title, subtitle) in zip(axes, panels, strict=True):
         for name, res in results.items():
             recs = res["recommendations"]
             if column == "recommended_high_volatility":
@@ -404,7 +404,7 @@ def main() -> None:
     print(f"\nwrote {out}/sessions.csv ({len(res['sessions']):,} rows), players.csv, "
           f"recommendations.csv, summary.csv"
           + (f", events.csv ({len(res['events']):,} rows)" if not res["events"].empty else "")
-          + f", learning_curves.png")
+          + ", learning_curves.png")
     print(f"the arena output is drop-in for the offline pipeline:\n"
           f"  python src/feature_engineering.py --data-dir {out} --out-dir {out}")
 

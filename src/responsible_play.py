@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 import argparse
+from pathlib import Path
 
 import pandas as pd
-from pathlib import Path
 
 RISK_COMPONENTS = {
     "avg_escalation_ratio": 0.35,        # bets grow a lot after a loss

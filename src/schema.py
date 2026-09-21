@@ -8,7 +8,7 @@ feature-engineering / clustering / recommendation stages later in the
 pipeline without re-reading generator internals.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 

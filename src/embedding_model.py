@@ -179,13 +179,20 @@ def train(
     return model, history
 
 
-def gradient_check(seed: int = 0, tol: float = 1e-7) -> float:
+def gradient_check(seed: int = 0, tol: float = 1e-5) -> float:
     """Verify the analytic backward pass against central finite differences.
 
     Checks a sample of entries in every parameter and returns the worst
     relative error. This is the test that the five-line derivation in the
     module docstring is actually correct — the cheapest possible insurance
     against a transposed matrix that still runs and still reduces the loss.
+
+    Tolerance is 1e-5, the conventional choice, not something tighter.
+    Central differences at eps=1e-6 carry their own truncation and
+    cancellation error of order 1e-7 in f64: seeds sampled here land between
+    3e-09 and 1.4e-07 on correct code. A genuine backprop error is O(1)
+    wrong, not O(1e-7), so the two orders of magnitude of slack cost nothing
+    in detection power and buy a test that does not flake on the draw.
     """
     rng = np.random.default_rng(seed)
     X = rng.normal(size=(12, 5))

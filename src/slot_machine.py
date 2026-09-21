@@ -35,8 +35,8 @@ _SRC_DIR = Path(__file__).resolve().parent
 if str(_SRC_DIR) not in sys.path:
     sys.path.insert(0, str(_SRC_DIR))
 
-from schema import SlotGame, Volatility  # noqa: E402
 from generate_synthetic_data import _spin as _draw_outcome  # noqa: E402
+from schema import SlotGame, Volatility  # noqa: E402
 
 # Purely cosmetic. The reels are rendered *from* the outcome, they don't
 # determine it — the RNG decides win/bonus/multiplier first (see _draw_outcome)
@@ -97,7 +97,7 @@ class SlotMachine:
         self.total_paid = 0.0
 
     @classmethod
-    def from_csv(cls, games_csv: Path, seed: int | None = None) -> "SlotMachine":
+    def from_csv(cls, games_csv: Path, seed: int | None = None) -> SlotMachine:
         return cls(games_from_frame(pd.read_csv(games_csv)), seed=seed)
 
     @property
@@ -115,6 +115,11 @@ class SlotMachine:
         bet = round(float(np.clip(bet, game.min_bet, game.max_bet)), 2)
 
         is_win, multiplier, is_bonus = _draw_outcome(game, self.rng)
+        # Money is rounded to cents, so a win with a small enough multiplier
+        # pays zero: is_win is True and payout is 0.00. Rare (~0.06% of wins
+        # at a bet of 1.00, ~0.5% at the 0.10 minimum) and the same way round
+        # as a real machine, which also rounds down — but worth knowing before
+        # you assert that every win pays out.
         payout = round(bet * multiplier, 2) if is_win else 0.0
 
         self.total_spins += 1

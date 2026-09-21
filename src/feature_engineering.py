@@ -102,7 +102,9 @@ def build_player_features(raw: dict[str, pd.DataFrame]) -> pd.DataFrame:
     events = raw["events"].copy()
 
     sessions["bet_fraction_of_bankroll"] = sessions["avg_bet"] / sessions["start_bankroll"].replace(0, np.nan)
-    sessions["bet_std_fraction_of_bankroll"] = sessions["bet_std"] / sessions["start_bankroll"].replace(0, np.nan)
+    sessions["bet_std_fraction_of_bankroll"] = (
+        sessions["bet_std"] / sessions["start_bankroll"].replace(0, np.nan)
+    )
     sessions["net_result_per_spin"] = sessions["net_result"] / sessions["num_spins"].replace(0, np.nan)
     sessions["is_bankroll_depleted"] = sessions["end_reason"] == "bankroll_depleted"
     sessions["is_voluntary_quit"] = sessions["end_reason"] == "voluntary_quit"
@@ -175,8 +177,10 @@ def run(data_dir: Path, out_dir: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Feature engineering & preprocessing.")
-    parser.add_argument("--data-dir", type=Path, default=Path("data/"), help="Directory containing the raw CSV files.")
-    parser.add_argument("--out-dir", type=Path, default=Path("data/"), help="Directory where the output CSV files will be saved.")
+    parser.add_argument("--data-dir", type=Path, default=Path("data/"),
+                        help="Directory containing the raw CSV files.")
+    parser.add_argument("--out-dir", type=Path, default=Path("data/"),
+                        help="Directory where the output CSV files will be saved.")
     args = parser.parse_args()
 
     run(args.data_dir, args.out_dir)

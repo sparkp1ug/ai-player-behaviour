@@ -1,0 +1,28 @@
+[project]
+name = "ai-player-behaviour"
+version = "0.1.0"
+description = "Behavioural modelling, clustering and online recommendation over synthetic player data"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 110
+extend-exclude = [".venv", "venv", "notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    # src/ modules import each other flatly (`from schema import ...`), which
+    # needs a sys.path insert above the imports. That is a deliberate choice
+    # to keep every script runnable as `python src/<name>.py`, so the
+    # module-level-import-not-at-top warning is noise here.
+    "E402",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Fixtures are injected by name, so pytest tests shadow imported builtins and
+# module-level names by design.
+"tests/*" = ["F811"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

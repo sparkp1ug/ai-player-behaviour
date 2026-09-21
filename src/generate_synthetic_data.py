@@ -397,7 +397,9 @@ def run(
     players_df = pd.DataFrame([vars(p) for p in players])
 
     sessions_df = pd.DataFrame([vars(s) for s in all_sessions])
-    sessions_df["end_reason"] = sessions_df["end_reason"].apply(lambda v: v.value if hasattr(v, "value") else v)
+    sessions_df["end_reason"] = sessions_df["end_reason"].apply(
+        lambda v: v.value if hasattr(v, "value") else v
+    )
 
     events_df = pd.DataFrame([vars(e) for e in all_events])
 

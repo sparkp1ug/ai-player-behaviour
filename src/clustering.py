@@ -6,10 +6,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
 from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score
 
 from feature_engineering import FEATURE_COLUMNS
+
 
 def choose_optimal_k(X, k_range: range, out_dir: Path) -> int:
     """
@@ -114,11 +115,17 @@ def run_clustering(features_path: Path, out_dir: Path, k: int | None, k_min: int
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run clustering on player behavior features.")
-    parser.add_argument("--features-path", type=Path, default=Path("data/player_features_scaled.csv"), help="Path to the CSV file containing features.")
-    parser.add_argument("--out-dir", type=Path, default=Path("data/"), help="Directory to save output plots and results.")
-    parser.add_argument("--k", type=int, default=None, help="Number of clusters. If not provided, optimal k will be determined.")
-    parser.add_argument("--k-min", type=int, default=2, help="Minimum number of clusters to consider if k is not provided.")
-    parser.add_argument("--k-max", type=int, default=10, help="Maximum number of clusters to consider if k is not provided.")
+    parser.add_argument("--features-path", type=Path,
+                        default=Path("data/player_features_scaled.csv"),
+                        help="Path to the CSV file containing features.")
+    parser.add_argument("--out-dir", type=Path, default=Path("data/"),
+                        help="Directory to save output plots and results.")
+    parser.add_argument("--k", type=int, default=None,
+                        help="Number of clusters. If omitted, the optimal k is chosen by silhouette score.")
+    parser.add_argument("--k-min", type=int, default=2,
+                        help="Minimum number of clusters to consider if k is not provided.")
+    parser.add_argument("--k-max", type=int, default=10,
+                        help="Maximum number of clusters to consider if k is not provided.")
 
     args = parser.parse_args()
 

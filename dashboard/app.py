@@ -132,7 +132,7 @@ def render_players(data: dict[str, pd.DataFrame]) -> None:
         display = recs[["game_id", "name", "score", "adjusted_score"]].copy()
         display.insert(2, "volatility", [
             "high" if h else ("medium" if m else "low")
-            for h, m in zip(recs["vol_high"], recs["vol_medium"])
+            for h, m in zip(recs["vol_high"], recs["vol_medium"], strict=True)
         ])
         st.dataframe(display, hide_index=True)
 

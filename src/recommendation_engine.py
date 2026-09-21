@@ -1,9 +1,10 @@
 from __future__ import annotations
-import pandas as pd
 
-import numpy as np
 import argparse
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 VOLATILITY_TIERS = ["low", "medium", "high"]
 
@@ -54,7 +55,9 @@ def build_player_vectors(
     theme_pref.columns = [f"theme_{c}" for c in theme_pref.columns]
     theme_pref = theme_pref.reindex(columns=theme_cols, fill_value=0.0)
 
-    risk_feats = player_features_raw.set_index("player_id")[["bonus_trigger_rate", "avg_bet_fraction_of_bankroll"]]
+    risk_feats = player_features_raw.set_index("player_id")[
+        ["bonus_trigger_rate", "avg_bet_fraction_of_bankroll"]
+    ]
     max_bet_fraction = player_features_raw["avg_bet_fraction_of_bankroll"].max() or 1.0
     bonus_affinity = risk_feats["bonus_trigger_rate"].clip(0.0, 1.0)
     risk_appetite = (risk_feats["avg_bet_fraction_of_bankroll"] / max_bet_fraction).clip(0.0, 1.0)
@@ -71,9 +74,11 @@ def cosine_sim(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     b_norm = b / np.linalg.norm(b, axis=1, keepdims=True)
     return np.dot(a_norm, b_norm.T)
 
-def recommend_for_players(player_id: str, player_vecs: pd.DataFrame, game_vecs: pd.DataFrame, risk_table: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
+def recommend_for_players(player_id: str, player_vecs: pd.DataFrame, game_vecs: pd.DataFrame,
+                          risk_table: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
     """Recommend games for a given player based on cosine similarity of feature vectors."""
-    feature_cols = [col for col in game_vecs.columns if col not in ["game_id", "name", "vol_low", "vol_medium", "vol_high"]]
+    feature_cols = [col for col in game_vecs.columns
+                    if col not in ["game_id", "name", "vol_low", "vol_medium", "vol_high"]]
     player_row = player_vecs.set_index("player_id").loc[player_id]
     player_vector = player_row[feature_cols].values.astype(float)
     game_matrix = game_vecs[feature_cols].values.astype(float)
@@ -138,7 +143,8 @@ def run_demo(data_dir: Path, top_n: int = 5) -> None:
         print(f"\nPersona {persona_id} (Player ID: {player_id}) recommendations:")
         recommendations = recommend_for_players(player_id, player_vecs, game_vecs, risk_table, top_n)
         print(f"Top {top_n} recommendations for {player_id} with persona {persona_id}:")
-        print(recommendations[["game_id", "name", "vol_low", "vol_medium", "vol_high", "adjusted_score", "note"]])
+        print(recommendations[["game_id", "name", "vol_low", "vol_medium", "vol_high",
+                               "adjusted_score", "note"]])
 
 def main():
     parser = argparse.ArgumentParser(description="Run the recommendation engine demo.")

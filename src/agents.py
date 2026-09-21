@@ -473,7 +473,7 @@ def build_agents(
             agents.append(PlayerAgent(
                 agent_id=f"agent_{uuid.uuid4().hex[:8]}",
                 persona=persona,
-                theme_affinity=dict(zip(themes, weights)),
+                theme_affinity=dict(zip(themes, weights, strict=True)),
                 starting_bankroll=round(float(rng.uniform(*persona.starting_bankroll_range)), 2),
                 rng=np.random.default_rng(rng.integers(0, 2**32 - 1)),
                 known_games=known,
