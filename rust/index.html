@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <title>Player Behaviour Demo</title>
+  <link data-trunk rel="rust" data-wasm-opt="s" />
+  <style>
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      overflow: hidden; background: #0e1116;
+    }
+    /* The canvas MUST be given an explicit size. eframe sizes its canvas from
+       the parent, so an unconstrained canvas and eframe's resize handling feed
+       back into each other and the canvas grows until it hits the browser's
+       maximum dimension (2^24 px). The symptom is a blank dark page with no
+       console error, which reads exactly like a failed wasm load. */
+    canvas {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: block; outline: none;
+    }
+    /* The wasm bundle is ~1 MB gzipped, so first paint is a second or two on
+       a cold cache. Without this the page is a blank dark rectangle and looks
+       broken. */
+    #loading {
+      position: absolute; inset: 0; display: flex; align-items: center;
+      justify-content: center; color: #8b949e;
+      font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">Loading…</div>
+  <canvas id="the_canvas_id"></canvas>
+</body>
+</html>

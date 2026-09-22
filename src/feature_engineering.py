@@ -140,7 +140,14 @@ def preprocess_features(features: pd.DataFrame) -> pd.DataFrame:
 
     X = features[FEATURE_COLUMNS].copy()
 
-    imputer = SimpleImputer(strategy="median")
+    # keep_empty_features matters: without it SimpleImputer silently DROPS any
+    # column that is entirely NaN, so the array comes back with fewer columns
+    # than FEATURE_COLUMNS and the DataFrame below fails with a bare shape
+    # mismatch that says nothing about which feature went missing. That happens
+    # for real — e.g. bonus_trigger_rate is all-NaN whenever events.csv does not
+    # line up with sessions.csv. Keeping the column (filled with 0) turns a
+    # confusing crash into a feature that is simply uninformative.
+    imputer = SimpleImputer(strategy="median", keep_empty_features=True)
     scaler = StandardScaler()
 
     # Impute missing values
