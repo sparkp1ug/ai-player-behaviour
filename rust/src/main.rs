@@ -17,6 +17,12 @@
 
 #![cfg_attr(not(debug_assertions), deny(warnings))]
 
+// `mod` pulls src/spin.rs into the crate. The UI does not call it yet — the
+// golden-vector test is what exercises it — so allow dead_code rather than
+// deleting work the next step depends on.
+#[allow(dead_code)]
+mod spin;
+
 /// All the state the app has. In egui's *immediate mode* model there is no
 /// widget tree and no callbacks: the whole UI is re-declared from this struct
 /// every frame, and a click is just a bool returned by the call that drew the
