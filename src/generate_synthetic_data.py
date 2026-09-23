@@ -22,6 +22,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import math
 import uuid
 from pathlib import Path
 
@@ -232,27 +233,76 @@ def _pick_game(persona: PlayerPersona, games: list[SlotGame], rng: np.random.Gen
     return candidates[rng.integers(0, len(candidates))]
 
 
-def _spin(game: SlotGame, rng: np.random.Generator) -> tuple[bool, float, bool]:
-    """Returns (is_win, payout_multiplier, is_bonus_triggered).
+# The Beta quantile below assumes a == 1, where Beta(1, b) has the closed form
+# CDF 1 - (1-x)^b. Guard it, because a future tweak to _BONUS_BETA_A would
+# silently make spin_from_uniforms wrong rather than fail.
+assert _BONUS_BETA_A == 1.0, "the closed-form Beta quantile below requires a == 1"
 
-    Both branches draw from the same unscaled shapes used during
-    calibration (_raw_shape_draw / Beta(1,12)*max_mult), multiplied by the
-    game's pre-computed payout_scale. Because that scale was solved via
-    Monte Carlo to match game.rtp, E[payout/bet] tracks RTP regardless of
-    how bonus_frequency and max_multiplier happen to combine — while the
-    *shape* of non-bonus wins still varies by volatility tier (tight for
-    LOW, heavy-tailed for HIGH), giving visibly different variance even
-    though the long-run average is calibrated the same way.
+
+def _shape_quantile(volatility: Volatility, u: float) -> float:
+    """Inverse CDF of the unscaled non-bonus shape, for u in [0, 1).
+
+    The same three distributions as _raw_shape_draw, expressed as quantile
+    functions instead of samplers. Feeding U(0,1) through here is exactly
+    inverse-transform sampling, so the outputs are distributed identically —
+    but the randomness is now an *input*, which is what makes a byte-for-byte
+    cross-language test possible (see spin_from_uniforms).
+
+        LOW     U(0.5, 1.5)   ->  0.5 + u
+        MEDIUM  U(0.2, 1.8)   ->  0.2 + 1.6u
+        HIGH    Exp(1)        ->  -ln(1 - u)
+
+    log1p(-u) rather than log(1 - u): for small u the former keeps full
+    precision where the latter loses it to cancellation.
     """
-    if rng.random() < game.bonus_frequency:
-        multiplier = rng.beta(_BONUS_BETA_A, _BONUS_BETA_B) * game.max_multiplier * game.payout_scale
-        return True, multiplier, True
+    if volatility is Volatility.LOW:
+        return 0.5 + u
+    if volatility is Volatility.MEDIUM:
+        return 0.2 + 1.6 * u
+    return -math.log1p(-u)
 
-    if rng.random() < game.base_win_probability:
-        multiplier = _raw_shape_draw(game.volatility, rng) * game.payout_scale
+
+def spin_from_uniforms(
+    game: SlotGame, u_bonus: float, u_win: float, u_shape: float
+) -> tuple[bool, float, bool]:
+    """The payout maths, as a pure function. Returns (is_win, multiplier, is_bonus).
+
+    This is the single definition of how a spin pays out. _spin wraps it with
+    an RNG, and the Rust port in rust/src/spin.rs is a line-by-line
+    translation of it — so "do the two implementations agree?" becomes a
+    question you can answer exactly, by feeding both the same three uniforms
+    and comparing outputs, rather than only statistically by comparing
+    histograms.
+
+    Three uniforms are always consumed, even though at most one branch uses
+    u_shape. That is distributionally identical to drawing lazily, since the
+    three are independent and the branch tests never look at u_shape — and it
+    keeps the signature fixed, which the golden-vector fixture depends on.
+
+    Payout scale: both branches are multiplied by game.payout_scale, which
+    _payout_scale solved exactly so that E[payout/bet] equals game.rtp. The
+    *shape* still differs per volatility tier (tight for LOW, heavy-tailed for
+    HIGH), so variance differs visibly even though the long-run mean is pinned.
+    """
+    if u_bonus < game.bonus_frequency:
+        # Beta(1, b) quantile: 1 - (1-u)^(1/b).
+        beta = 1.0 - (1.0 - u_shape) ** (1.0 / _BONUS_BETA_B)
+        return True, beta * game.max_multiplier * game.payout_scale, True
+
+    if u_win < game.base_win_probability:
+        multiplier = _shape_quantile(game.volatility, u_shape) * game.payout_scale
         return True, max(multiplier, 0.0), False
 
     return False, 0.0, False
+
+
+def _spin(game: SlotGame, rng: np.random.Generator) -> tuple[bool, float, bool]:
+    """Draw three uniforms and hand them to the pure spin function.
+
+    slot_machine.py imports this, so the live machine and the offline dataset
+    keep sharing one definition of the payout maths.
+    """
+    return spin_from_uniforms(game, rng.random(), rng.random(), rng.random())
 
 
 def simulate_session(

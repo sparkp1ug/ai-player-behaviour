@@ -17,14 +17,14 @@ difference between them is caused by the policy and nothing else. Pooled over
 
 | policy | satisfaction | accept rate | high-volatility recs to flagged players |
 |---|---|---|---|
-| random | 0.408 | 0.35 | 0.34 |
-| static cosine | 0.420 | 0.41 | 0.04 |
-| adaptive (LinUCB) | **0.435** | **0.47** | **0.00** |
+| random | 0.409 | 0.35 | 0.34 |
+| static cosine | 0.419 | 0.40 | 0.09 |
+| adaptive (LinUCB) | **0.431** | **0.47** | **0.00** |
 
 ![Learning curves: satisfaction, accept rate and safety-layer exposure over 60 rounds](docs/img/learning_curves.png)
 
-Adaptive is ahead on 6/6 seeds, +0.016 satisfaction/session over static
-(paired by seed, sd 0.010). The dip at round 30 is a deliberate taste shift —
+Adaptive is ahead on 6/6 seeds, +0.012 satisfaction/session over static
+(paired by seed, sd 0.008). The dip at round 30 is a deliberate taste shift —
 every agent's preferences rotate at once — and the adaptive policy is the one
 that recovers.
 
