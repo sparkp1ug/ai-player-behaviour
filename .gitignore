@@ -220,8 +220,11 @@ __marimo__/
 # DS_Store
 .DS_Store
 
-#Local project data
-data/
+#Local project data. Anchored with a leading slash so it means *this*
+# directory and not every directory named "data" anywhere in the tree —
+# unanchored, it silently swallowed rust/tests/data/spin_golden.json, the
+# fixture the cross-language test cannot run without.
+/data/
 # Personal working files — not portfolio content
 kanban-board.html
 study-schedule-*.md
